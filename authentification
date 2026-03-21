@@ -1,0 +1,639 @@
+// pages/AuthPage.tsx - Page d'authentification (Login / Inscription / Reset)
+
+import React, { useState, useEffect } from 'react';
+import { Calendar, Mail, Lock, User, Phone, Eye, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+
+/**
+ * Onglets disponibles sur la page d'authentification
+ */
+type AuthTab = 'login' | 'register' | 'forgot';
+
+/**
+ * Page d'authentification - 3 onglets: Login, Inscription, Mot de passe oublié
+ * Design basé sur le modèle Figma adapté à la thématique événementielle Sénégal
+ */
+const AuthPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { login, register, isAuthenticated } = useAuth();
+
+  // Détermine l'onglet actif depuis l'URL (ex: ?tab=register)
+  const initialTab = (searchParams.get('tab') as AuthTab) || 'login';
+  const [activeTab, setActiveTab] = useState<AuthTab>(initialTab);
+
+  // États des formulaires
+  const [loginData, setLoginData] = useState({ email: '', password: '', rememberMe: false });
+  const [registerData, setRegisterData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    role: 'participant' as 'organizer' | 'participant',
+    acceptTerms: false,
+  });
+  const [forgotEmail, setForgotEmail] = useState('');
+
+  // États UI
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [successMessage, setSuccessMessage] = useState('');
+  const [globalError, setGlobalError] = useState('');
+
+  // Redirection si déjà connecté
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Mettre à jour l'onglet si le param URL change
+  useEffect(() => {
+    const tab = searchParams.get('tab') as AuthTab;
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
+
+  /**
+   * Validation du formulaire de connexion
+   */
+  const validateLogin = () => {
+    const newErrors: Record<string, string> = {};
+    if (!loginData.email) newErrors.email = 'L\'email est requis';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginData.email))
+      newErrors.email = 'Email invalide';
+    if (!loginData.password) newErrors.password = 'Le mot de passe est requis';
+    else if (loginData.password.length < 6)
+      newErrors.password = 'Le mot de passe doit contenir au moins 6 caractères';
+    return newErrors;
+  };
+
+  /**
+   * Validation du formulaire d'inscription
+   */
+  const validateRegister = () => {
+    const newErrors: Record<string, string> = {};
+    if (!registerData.name.trim()) newErrors.name = 'Le nom complet est requis';
+    if (!registerData.email) newErrors.email = 'L\'email est requis';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerData.email))
+      newErrors.email = 'Email invalide';
+    if (!registerData.phone) newErrors.phone = 'Le numéro de téléphone est requis';
+    if (!registerData.password) newErrors.password = 'Le mot de passe est requis';
+    else if (registerData.password.length < 6)
+      newErrors.password = 'Minimum 6 caractères';
+    if (registerData.password !== registerData.confirmPassword)
+      newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
+    if (!registerData.acceptTerms)
+      newErrors.acceptTerms = 'Vous devez accepter les conditions d\'utilisation';
+    return newErrors;
+  };
+
+  /**
+   * Soumettre le formulaire de connexion
+   */
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const validationErrors = validateLogin();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setErrors({});
+    setGlobalError('');
+    setLoading(true);
+
+    try {
+      const success = await login(loginData.email, loginData.password);
+      if (success) {
+        navigate('/dashboard');
+      } else {
+        setGlobalError('Email ou mot de passe incorrect. Réessayez.');
+      }
+    } catch {
+      setGlobalError('Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Soumettre le formulaire d'inscription
+   */
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const validationErrors = validateRegister();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setErrors({});
+    setGlobalError('');
+    setLoading(true);
+
+    try {
+      const success = await register({
+        name: registerData.name,
+        email: registerData.email,
+        role: registerData.role,
+        password: registerData.password,
+      });
+      if (success) {
+        navigate('/dashboard');
+      } else {
+        setGlobalError('Erreur lors de l\'inscription. Réessayez.');
+      }
+    } catch {
+      setGlobalError('Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Soumettre la demande de réinitialisation de mot de passe
+   */
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) {
+      setErrors({ forgotEmail: 'L\'email est requis' });
+      return;
+    }
+
+    setErrors({});
+    setLoading(true);
+
+    // Simulation d'envoi d'email
+    await new Promise((r) => setTimeout(r, 1500));
+    setLoading(false);
+    setSuccessMessage(
+      `Un lien de réinitialisation a été envoyé à ${forgotEmail}. Vérifiez votre boîte mail.`
+    );
+  };
+
+  return (
+    <div className="min-h-screen flex">
+      {/* ===== Panneau gauche: Image et informations ===== */}
+      <div
+        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, #1a0a00 0%, #2d1500 50%, #0a0a0a 100%)',
+        }}
+      >
+        {/* Décoration de fond */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-20 -right-20 w-80 h-80 bg-amber-500/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 -left-20 w-60 h-60 bg-orange-600/15 rounded-full blur-3xl" />
+          {/* Motif géométrique africain */}
+          <div
+            className="absolute inset-0 opacity-5"
+            style={{
+              backgroundImage: `repeating-linear-gradient(60deg, transparent, transparent 30px, rgba(245,158,11,0.5) 30px, rgba(245,158,11,0.5) 31px)`,
+            }}
+          />
+        </div>
+
+        {/* Logo */}
+        <div className="relative flex items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-xl">
+            <Calendar size={24} className="text-white" />
+          </div>
+          <div>
+            <h1 className="font-extrabold text-2xl text-white">
+              Event<span className="text-amber-400">Flow</span>
+            </h1>
+            <p className="text-amber-500/70 text-xs">Sénégal 🇸🇳</p>
+          </div>
+        </div>
+
+        {/* Contenu central */}
+        <div className="relative">
+          <h2 className="text-4xl font-extrabold text-white mb-4 leading-tight">
+            Gérez vos événements<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
+              comme un pro
+            </span>
+          </h2>
+          <p className="text-gray-400 text-lg mb-8">
+            Rejoignez plus de 500 organisateurs d'événements en Afrique de l'Ouest
+            qui font confiance à EventFlow.
+          </p>
+
+          {/* Avantages */}
+          <div className="space-y-4">
+            {[
+              { icon: '🎤', text: 'Créez des événements en 5 minutes' },
+              { icon: '💳', text: 'Paiements en FCFA, Orange Money, Wave' },
+              { icon: '📊', text: 'Analyses et statistiques en temps réel' },
+              { icon: '🌍', text: "Touchez l'Afrique de l'Ouest entière" },
+            ].map((item) => (
+              <div key={item.text} className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
+                  {item.icon}
+                </div>
+                <span className="text-gray-300">{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Citation en bas */}
+        <div className="relative border-l-2 border-amber-500 pl-4">
+          <p className="text-gray-400 italic">
+            "EventFlow a transformé la façon dont nous organisons nos événements. Simple, efficace et made in Afrique."
+          </p>
+          <p className="text-amber-500 text-sm font-medium mt-2">— Fatou Sarr, FESMAN Dakar</p>
+        </div>
+      </div>
+
+      {/* ===== Panneau droit: Formulaire ===== */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-gray-50">
+        <div className="w-full max-w-md">
+          {/* Lien retour vers la landing page */}
+          <div className="mb-8">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-gray-500 hover:text-amber-600 text-sm font-medium transition-colors"
+            >
+              <ArrowLeft size={16} />
+              Retour à l'accueil
+            </Link>
+          </div>
+
+          {/* Logo mobile */}
+          <div className="lg:hidden flex items-center gap-2.5 mb-8">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
+              <Calendar size={20} className="text-white" />
+            </div>
+            <span className="font-extrabold text-xl text-gray-900">
+              Event<span className="text-amber-500">Flow</span>
+            </span>
+          </div>
+
+          {/* Onglets de navigation */}
+          <div className="flex bg-gray-100 rounded-2xl p-1 mb-8">
+            {[
+              { key: 'login', label: 'Connexion' },
+              { key: 'register', label: 'Inscription' },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => {
+                  setActiveTab(tab.key as AuthTab);
+                  setErrors({});
+                  setGlobalError('');
+                  setSuccessMessage('');
+                }}
+                className={`
+                  flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200
+                  ${activeTab === tab.key
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                  }
+                `}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Message d'erreur global */}
+          {globalError && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+              <AlertCircle size={18} className="text-red-500 flex-shrink-0" />
+              <p className="text-red-600 text-sm">{globalError}</p>
+            </div>
+          )}
+
+          {/* Message de succès */}
+          {successMessage && (
+            <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3">
+              <CheckCircle size={18} className="text-emerald-500 flex-shrink-0" />
+              <p className="text-emerald-700 text-sm">{successMessage}</p>
+            </div>
+          )}
+
+          {/* ===== FORMULAIRE DE CONNEXION ===== */}
+          {activeTab === 'login' && (
+            <div>
+              <div className="mb-8">
+                <h2 className="text-3xl font-extrabold text-gray-900">Bon retour ! 👋</h2>
+                <p className="text-gray-500 mt-1">Connectez-vous à votre espace EventFlow</p>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-5" id="login-form">
+                <Input
+                  id="login-email"
+                  label="Adresse email"
+                  type="email"
+                  placeholder="vous@exemple.com"
+                  value={loginData.email}
+                  onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                  icon={<Mail size={16} />}
+                  error={errors.email}
+                  required
+                />
+
+                <Input
+                  id="login-password"
+                  label="Mot de passe"
+                  type="password"
+                  placeholder="••••••••"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                  icon={<Lock size={16} />}
+                  error={errors.password}
+                  required
+                />
+
+                {/* Se souvenir & mot de passe oublié */}
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      id="remember-me"
+                      checked={loginData.rememberMe}
+                      onChange={(e) => setLoginData({ ...loginData, rememberMe: e.target.checked })}
+                      className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500"
+                    />
+                    <span className="text-gray-600">Se souvenir de moi</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('forgot');
+                      setErrors({});
+                      setGlobalError('');
+                    }}
+                    className="text-amber-600 hover:text-amber-700 font-medium"
+                  >
+                    Mot de passe oublié ?
+                  </button>
+                </div>
+
+                {/* Bouton connexion */}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  fullWidth
+                  size="lg"
+                  loading={loading}
+                >
+                  Se connecter
+                </Button>
+
+                {/* Compte demo */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-gray-50 px-2 text-gray-400">ou</span>
+                  </div>
+                </div>
+
+                {/* Connexion démo rapide */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginData({
+                      email: 'moussa.diallo@eventflow.sn',
+                      password: 'demo123',
+                      rememberMe: false,
+                    });
+                  }}
+                  className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 text-sm font-medium hover:border-amber-300 hover:text-amber-600 transition-all"
+                >
+                  🚀 Remplir avec un compte démo
+                </button>
+              </form>
+
+              <p className="text-center text-gray-500 text-sm mt-6">
+                Pas encore de compte ?{' '}
+                <button
+                  onClick={() => setActiveTab('register')}
+                  className="text-amber-600 font-semibold hover:underline"
+                >
+                  Créer un compte
+                </button>
+              </p>
+            </div>
+          )}
+
+          {/* ===== FORMULAIRE D'INSCRIPTION ===== */}
+          {activeTab === 'register' && (
+            <div>
+              <div className="mb-8">
+                <h2 className="text-3xl font-extrabold text-gray-900">Créer un compte 🎉</h2>
+                <p className="text-gray-500 mt-1">Rejoignez la communauté EventFlow Sénégal</p>
+              </div>
+
+              <form onSubmit={handleRegister} className="space-y-4" id="register-form">
+                <Input
+                  id="register-name"
+                  label="Nom complet"
+                  type="text"
+                  placeholder="Moussa Diallo"
+                  value={registerData.name}
+                  onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
+                  icon={<User size={16} />}
+                  error={errors.name}
+                  required
+                />
+
+                <Input
+                  id="register-email"
+                  label="Adresse email"
+                  type="email"
+                  placeholder="vous@exemple.com"
+                  value={registerData.email}
+                  onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
+                  icon={<Mail size={16} />}
+                  error={errors.email}
+                  required
+                />
+
+                <Input
+                  id="register-phone"
+                  label="Téléphone"
+                  type="tel"
+                  placeholder="+221 77 xxx xxxx"
+                  value={registerData.phone}
+                  onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
+                  icon={<Phone size={16} />}
+                  error={errors.phone}
+                  required
+                />
+
+                <Input
+                  id="register-password"
+                  label="Mot de passe"
+                  type="password"
+                  placeholder="••••••••"
+                  value={registerData.password}
+                  onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
+                  icon={<Lock size={16} />}
+                  error={errors.password}
+                  helperText="Minimum 6 caractères"
+                  required
+                />
+
+                <Input
+                  id="register-confirm-password"
+                  label="Confirmer le mot de passe"
+                  type="password"
+                  placeholder="••••••••"
+                  value={registerData.confirmPassword}
+                  onChange={(e) =>
+                    setRegisterData({ ...registerData, confirmPassword: e.target.value })
+                  }
+                  icon={<Lock size={16} />}
+                  error={errors.confirmPassword}
+                  required
+                />
+
+                {/* Rôle */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Je suis un <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { value: 'organizer', label: '🎤 Organisateur', desc: "Je crée des événements" },
+                      { value: 'participant', label: '🎟️ Participant', desc: "Je m'inscris aux événements" },
+                    ].map((role) => (
+                      <button
+                        key={role.value}
+                        type="button"
+                        onClick={() => setRegisterData({ ...registerData, role: role.value as 'organizer' | 'participant' })}
+                        className={`
+                          p-3 rounded-xl border-2 text-left transition-all
+                          ${registerData.role === role.value
+                            ? 'border-amber-500 bg-amber-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                          }
+                        `}
+                      >
+                        <p className="font-semibold text-sm text-gray-800">{role.label}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{role.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Conditions d'utilisation */}
+                <div>
+                  <label id="accept-terms-label" className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      id="accept-terms"
+                      checked={registerData.acceptTerms}
+                      onChange={(e) =>
+                        setRegisterData({ ...registerData, acceptTerms: e.target.checked })
+                      }
+                      className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500 mt-0.5 flex-shrink-0"
+                    />
+                    <span className="text-sm text-gray-600">
+                      J'accepte les{' '}
+                      <a href="#" className="text-amber-600 hover:underline font-medium">
+                        conditions d'utilisation
+                      </a>{' '}
+                      et la{' '}
+                      <a href="#" className="text-amber-600 hover:underline font-medium">
+                        politique de confidentialité
+                      </a>
+                    </span>
+                  </label>
+                  {errors.acceptTerms && (
+                    <p className="text-red-500 text-xs mt-1">{errors.acceptTerms}</p>
+                  )}
+                </div>
+
+                {/* Bouton inscription */}
+                <Button type="submit" variant="primary" fullWidth size="lg" loading={loading}>
+                  Créer mon compte
+                </Button>
+              </form>
+
+              <p className="text-center text-gray-500 text-sm mt-6">
+                Déjà un compte ?{' '}
+                <button
+                  onClick={() => setActiveTab('login')}
+                  className="text-amber-600 font-semibold hover:underline"
+                >
+                  Se connecter
+                </button>
+              </p>
+            </div>
+          )}
+
+          {/* ===== FORMULAIRE MOT DE PASSE OUBLIÉ ===== */}
+          {activeTab === 'forgot' && (
+            <div>
+              <button
+                onClick={() => setActiveTab('login')}
+                className="flex items-center gap-2 text-gray-500 hover:text-amber-600 text-sm font-medium mb-6 transition-colors"
+              >
+                <ArrowLeft size={16} />
+                Retour à la connexion
+              </button>
+
+              <div className="mb-8">
+                <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mb-4 text-3xl">
+                  🔑
+                </div>
+                <h2 className="text-3xl font-extrabold text-gray-900">Mot de passe oublié</h2>
+                <p className="text-gray-500 mt-2">
+                  Entrez votre email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+                </p>
+              </div>
+
+              {!successMessage ? (
+                <form onSubmit={handleForgotPassword} className="space-y-5" id="forgot-password-form">
+                  <Input
+                    id="forgot-email"
+                    label="Adresse email"
+                    type="email"
+                    placeholder="vous@exemple.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    icon={<Mail size={16} />}
+                    error={errors.forgotEmail}
+                    required
+                  />
+
+                  <Button type="submit" variant="primary" fullWidth size="lg" loading={loading}>
+                    Envoyer le lien de réinitialisation
+                  </Button>
+                </form>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle size={32} className="text-emerald-500" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">Email envoyé !</h3>
+                  <p className="text-gray-500 text-sm">{successMessage}</p>
+                  <button
+                    onClick={() => {
+                      setActiveTab('login');
+                      setSuccessMessage('');
+                    }}
+                    className="mt-6 text-amber-600 font-semibold hover:underline"
+                  >
+                    Retour à la connexion
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AuthPage;
