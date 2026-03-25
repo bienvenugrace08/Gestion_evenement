@@ -117,7 +117,6 @@ export default function Evenements() {
           <nav className="sticky top-0 z-50 border-b border-[#1E3A8A]/20 bg-[#1E3A8A] backdrop-blur-md">
   <div className="max-w-6xl mx-auto px-6 py-4 grid grid-cols-3 items-center">
     
-    {/* LEFT - Logo */}
     <div className="flex items-center space-x-2">
       <span className="w-auto text-[#F97316]">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-9">
@@ -127,21 +126,19 @@ export default function Evenements() {
       <span className="font-bold text-4xl text-[#F97316]">Evana</span>
     </div>
 
-    {/* CENTER - Links */}
     <div className="flex justify-center space-x-6 text-white">
       <Link to="/" className="hover:text-[#F97316] text-2xl">Accueil</Link>
       <Link to="/evenements" className="hover:text-[#F97316] text-2xl">Événements</Link>
       <Link to="/about" className="hover:text-[#F97316] text-2xl">About</Link>
     </div>
 
-    {/* RIGHT - Stats */}
     <div className="hidden md:flex justify-end items-center gap-8">
       <div className="text-center">
         <p className="text-2xl font-black text-orange-600">{events.length}</p>
         <p className="text-xs text-orange-600 uppercase tracking-widest">Événements</p>
       </div>
       <div className="w-px h-8 bg-white/30"></div>
-      <div className="text-center">
+      <div className="text-center ">
         <p className="text-2xl font-black text-orange-600">
           {events.reduce((acc, e) => acc + e.registered, 0)}
         </p>

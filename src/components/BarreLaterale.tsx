@@ -9,9 +9,9 @@ function BarreLaterale() {
         <nav className="flex flex-col space-y-2 px-4">
           <Link to="/" className="hover:bg-[#F97316] p-2 rounded text-xl">Accueil</Link>
           <Link to="/evenements" className="hover:bg-[#F97316] p-2 rounded text-xl">Événements</Link>
-          <Link to="/#" className="hover:bg-[#F97316] p-2 rounded text-xl">Participants</Link>
-          <Link to="/#" className="hover:bg-[#F97316] p-2 rounded text-xl">Tickets vendus</Link>
-          <Link to="/#" className="hover:bg-[#F97316] p-2 rounded text-xl">Créer un événement</Link>
+          <li className="hover:bg-[#F97316] p-2 rounded text-xl">Participants</li>
+          <li className="hover:bg-[#F97316] p-2 rounded text-xl">Tickets vendus</li>
+          <li className="hover:bg-[#F97316] p-2 rounded text-xl">Créer un événement</li>
         </nav>
       </div>
       {/* Bas de la sidebar */}
