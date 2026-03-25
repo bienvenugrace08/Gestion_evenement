@@ -150,9 +150,6 @@ export default function Evenements() {
     </div>
   </div>
 </nav>
-
-
-
             {/* HERO SECTION */}
             <div className="max-w-6xl mx-auto px-6 py-16">
                 <div className="space-y-4 mb-16">
