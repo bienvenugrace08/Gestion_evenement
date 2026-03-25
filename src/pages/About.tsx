@@ -29,7 +29,7 @@ export default function AboutPage() {
         <p className="text-2xl text-gray-700 text-center mb-12">
           Evana est une plateforme de gestion d’événements qui facilite
           l’organisation et la communication de vos projets. Notre objectif est
-          de rendre chaque événement simple à organiser et mémorable à vivre.
+          de rendre chaque événement simple à organiser et mémorable à vivre pour vous.
         </p>
 
 
