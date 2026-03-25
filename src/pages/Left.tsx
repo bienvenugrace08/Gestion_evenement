@@ -35,7 +35,6 @@ export default function Left() {
         </div>
       </div>
 
-      {/* Contenu central */}
       <div className="relative">
         <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
           Gérez vos événements<br />

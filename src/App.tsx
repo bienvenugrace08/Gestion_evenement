@@ -5,7 +5,7 @@ import About from "./pages/About";
 import AuthPage from "./pages/Authentification";
 import Evenements from "./pages/Evenement";
 
-function App() {
+function App() {   
   return (
     <Router>
       <Routes>
